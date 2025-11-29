@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Miembros - Sistema de Gimnasio{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-people"></i> Gestión de Miembros</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        {% if session.rol in ['administrador', 'encargado'] %}
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoMiembro">
+            <i class="bi bi-person-plus"></i> Nuevo Miembro
+        </button>
+        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalVerPlanes">
+            <i class="bi bi-card-list"></i> Ver Planes
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabla de miembros -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Plan Actual</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        {% if session.rol in ['administrador', 'encargado'] %}
+                        <th>Acciones</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for miembro in miembros %}
+                    <tr>
+                        <td>{{ miembro.id }}</td>
+                        <td>{{ miembro.nombre }} {{ miembro.apellido }}</td>
+                        <td>{{ miembro.email or '-' }}</td>
+                        <td>{{ miembro.telefono or '-' }}</td>
+                        <td>{{ miembro.plan_actual or 'Sin plan' }}</td>
+                        <td>
+                            {% if miembro.vencimiento_membresia %}
+                                {{ miembro.vencimiento_membresia.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if miembro.estado == 'activo' %}
+                                <span class="badge bg-success">Activo</span>
+                            {% elif miembro.estado == 'suspendido' %}
+                                <span class="badge bg-warning">Suspendido</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        {% if session.rol in ['administrador', 'encargado'] %}
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-info" onclick="editarMiembro({{ miembro.id }})" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-success" onclick="asignarMembresia({{ miembro.id }})" title="Asignar Membresía">
+                                    <i class="bi bi-card-checklist"></i>
+                                </button>
+                                {% if session.rol == 'administrador' %}
+                                <button class="btn btn-danger" onclick="eliminarMiembro({{ miembro.id }}, '{{ miembro.nombre }}')" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Planes -->
+<div class="modal fade" id="modalVerPlanes" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Planes de Membresía</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-4">
+                    {% for plan in planes %}
+                    <div class="col-md-4">
+                        <div class="card h-100 {% if plan.nombre == 'Anual' %}border-primary{% endif %}">
+                            <div class="card-header {% if plan.nombre == 'Anual' %}bg-primary text-white{% else %}bg-light{% endif %} text-center">
+                                <h3 class="mb-0">{{ plan.nombre }}</h3>
+                            </div>
+                            <div class="card-body">
+                                <h1 class="text-center mb-3">
+                                    ${{ "%.2f"|format(plan.precio) }}
+                                    <small class="text-muted" style="font-size: 0.4em;">MXN</small>
+                                </h1>
+                                <p class="text-center text-muted mb-4">
+                                    <i class="bi bi-calendar"></i> {{ plan.duracion_dias }} días
+                                </p>
+                                
+                                <p class="mb-3">{{ plan.descripcion }}</p>
+                                
+                                <h6 class="mb-3"><i class="bi bi-check2-all"></i> Beneficios incluidos:</h6>
+                                <ul class="list-unstyled">
+                                    {% if plan.beneficios %}
+                                        {% for beneficio in plan.beneficios.split('|') %}
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle-fill text-success"></i> {{ beneficio }}
+                                        </li>
+                                        {% endfor %}
+                                    {% endif %}
+                                </ul>
+                            </div>
+                            {% if plan.nombre == 'Anual' %}
+                            <div class="card-footer bg-primary text-white text-center">
+                                <strong><i class="bi bi-star-fill"></i> Más Popular</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Miembro -->
+<div class="modal fade" id="modalNuevoMiembro" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('crear_miembro') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Miembro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Apellido</label>
+                        <input type="text" class="form-control" name="apellido" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="tel" class="form-control" name="telefono">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de Nacimiento</label>
+                        <input type="date" class="form-control" name="fecha_nacimiento">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Miembro -->
+<div class="modal fade" id="modalEditarMiembro" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="formEditarMiembro">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Miembro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-control" name="nombre" id="edit_nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Apellido</label>
+                        <input type="text" class="form-control" name="apellido" id="edit_apellido" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" id="edit_email">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="tel" class="form-control" name="telefono" id="edit_telefono">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de Nacimiento</label>
+                        <input type="date" class="form-control" name="fecha_nacimiento" id="edit_fecha_nacimiento">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado" id="edit_estado">
+                            <option value="activo">Activo</option>
+                            <option value="suspendido">Suspendido</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Asignar Membresía -->
+<div class="modal fade" id="modalAsignarMembresia" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('asignar_membresia') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Asignar Membresía</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="miembro_id" id="membresia_miembro_id">
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Plan</label>
+                        <select class="form-select" name="plan_id" id="select_plan" required onchange="actualizarBeneficios()">
+                            <option value="">Seleccione un plan...</option>
+                            {% for plan in planes %}
+                            <option value="{{ plan.id }}" data-precio="{{ plan.precio }}" data-beneficios="{{ plan.beneficios }}" data-duracion="{{ plan.duracion_dias }}">
+                                {{ plan.nombre }} - ${{ plan.precio }} ({{ plan.duracion_dias }} días)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div id="info_plan" style="display: none;" class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Beneficios incluidos:</h6>
+                        <ul id="lista_beneficios" class="mb-0"></ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Monto Pagado</label>
+                        <input type="number" step="0.01" class="form-control" name="monto_pagado" id="monto_pagado" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Asignar Membresía</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editarMiembro(id) {
+    fetch(`/api/miembro/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('formEditarMiembro').action = `/miembros/editar/${id}`;
+            document.getElementById('edit_nombre').value = data.nombre;
+            document.getElementById('edit_apellido').value = data.apellido;
+            document.getElementById('edit_email').value = data.email || '';
+            document.getElementById('edit_telefono').value = data.telefono || '';
+            document.getElementById('edit_fecha_nacimiento').value = data.fecha_nacimiento || '';
+            document.getElementById('edit_estado').value = data.estado;
+            new bootstrap.Modal(document.getElementById('modalEditarMiembro')).show();
+        });
+}
+
+function asignarMembresia(id) {
+    document.getElementById('membresia_miembro_id').value = id;
+    document.getElementById('info_plan').style.display = 'none';
+    document.getElementById('select_plan').value = '';
+    document.getElementById('monto_pagado').value = '';
+    new bootstrap.Modal(document.getElementById('modalAsignarMembresia')).show();
+}
+
+function actualizarBeneficios() {
+    const select = document.getElementById('select_plan');
+    const option = select.options[select.selectedIndex];
+    
+    if (option.value) {
+        const beneficios = option.dataset.beneficios;
+        const precio = option.dataset.precio;
+        const listaBeneficios = document.getElementById('lista_beneficios');
+        
+        // Mostrar beneficios
+        listaBeneficios.innerHTML = '';
+        if (beneficios) {
+            beneficios.split('|').forEach(beneficio => {
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="bi bi-check-circle-fill text-success"></i> ${beneficio}`;
+                listaBeneficios.appendChild(li);
+            });
+        }
+        
+        // Autocompletar monto
+        document.getElementById('monto_pagado').value = precio;
+        document.getElementById('info_plan').style.display = 'block';
+    } else {
+        document.getElementById('info_plan').style.display = 'none';
+    }
+}
+
+function eliminarMiembro(id, nombre) {
+    if (confirm(`¿Estás seguro de eliminar al miembro ${nombre}?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/miembros/eliminar/${id}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

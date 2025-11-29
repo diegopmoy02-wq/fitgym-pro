@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Clases - Sistema de Gimnasio{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-calendar2-week"></i> Gestión de Clases</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        {% if session.rol in ['administrador', 'encargado'] %}
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaClase">
+            <i class="bi bi-plus-circle"></i> Nueva Clase
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tarjetas de clases -->
+<div class="row g-4">
+    {% for clase in clases %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-award"></i> {{ clase.nombre }}
+                </h5>
+                {% if session.rol in ['administrador', 'encargado'] %}
+                <button class="btn btn-sm btn-light" onclick="editarClase({{ clase.id }})" title="Editar">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-2">
+                    <i class="bi bi-person-badge"></i> <strong>Instructor:</strong> {{ clase.instructor }}
+                </p>
+                <p class="mb-2">{{ clase.descripcion }}</p>
+                
+                <hr>
+                
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <i class="bi bi-clock"></i><br>
+                        <strong>{{ clase.duracion_minutos }} min</strong>
+                    </div>
+                    <div class="col-6">
+                        <i class="bi bi-people"></i><br>
+                        <strong>{{ clase.inscritos }}/{{ clase.cupo_maximo }}</strong>
+                    </div>
+                </div>
+                
+                <p class="mb-1">
+                    <i class="bi bi-alarm"></i> <strong>Horario:</strong> {{ clase.horario }}
+                </p>
+                <p class="mb-3">
+                    <i class="bi bi-calendar3"></i> <strong>Días:</strong> {{ clase.dias_semana }}
+                </p>
+                
+                {% if session.rol in ['administrador', 'encargado'] %}
+                <button class="btn btn-success btn-sm w-100" onclick="inscribirMiembro({{ clase.id }})" 
+                        {% if clase.inscritos >= clase.cupo_maximo %}disabled{% endif %}>
+                    <i class="bi bi-person-plus"></i> Inscribir Miembro
+                </button>
+                {% endif %}
+            </div>
+            {% if clase.inscritos >= clase.cupo_maximo %}
+            <div class="card-footer bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle"></i> Cupo lleno
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Nueva Clase -->
+<div class="modal fade" id="modalNuevaClase" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('crear_clase') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nueva Clase</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre de la Clase</label>
+                            <input type="text" class="form-control" name="nombre" required 
+                                   placeholder="Ej: Zumba, Yoga, Spinning">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Instructor</label>
+                            <input type="text" class="form-control" name="instructor" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Duración (minutos)</label>
+                            <input type="number" class="form-control" name="duracion_minutos" required value="60">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cupo Máximo</label>
+                            <input type="number" class="form-control" name="cupo_maximo" required value="20">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Horario</label>
+                        <input type="text" class="form-control" name="horario" required 
+                               placeholder="Ej: 18:00 - 19:00">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Días de la Semana</label>
+                        <input type="text" class="form-control" name="dias_semana" required 
+                               placeholder="Ej: Lunes, Miércoles, Viernes">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Clase</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Clase -->
+<div class="modal fade" id="modalEditarClase" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" id="formEditarClase">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Clase</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre de la Clase</label>
+                            <input type="text" class="form-control" name="nombre" id="edit_clase_nombre" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Instructor</label>
+                            <input type="text" class="form-control" name="instructor" id="edit_clase_instructor" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" id="edit_clase_descripcion" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Duración (minutos)</label>
+                            <input type="number" class="form-control" name="duracion_minutos" id="edit_clase_duracion" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cupo Máximo</label>
+                            <input type="number" class="form-control" name="cupo_maximo" id="edit_clase_cupo" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Horario</label>
+                        <input type="text" class="form-control" name="horario" id="edit_clase_horario" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Días de la Semana</label>
+                        <input type="text" class="form-control" name="dias_semana" id="edit_clase_dias" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar Clase</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Inscribir Miembro -->
+<div class="modal fade" id="modalInscribirMiembro" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('inscribir_clase') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Inscribir Miembro a Clase</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="clase_id" id="inscripcion_clase_id">
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Miembro</label>
+                        <select class="form-select" name="miembro_id" required>
+                            <option value="">Seleccione un miembro...</option>
+                            {% for miembro in miembros %}
+                            <option value="{{ miembro.id }}">
+                                {{ miembro.nombre }} {{ miembro.apellido }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Inscribir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function inscribirMiembro(claseId) {
+    document.getElementById('inscripcion_clase_id').value = claseId;
+    new bootstrap.Modal(document.getElementById('modalInscribirMiembro')).show();
+}
+
+function editarClase(id) {
+    fetch(`/api/clase/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('formEditarClase').action = `/clases/editar/${id}`;
+            document.getElementById('edit_clase_nombre').value = data.nombre;
+            document.getElementById('edit_clase_instructor').value = data.instructor;
+            document.getElementById('edit_clase_descripcion').value = data.descripcion || '';
+            document.getElementById('edit_clase_duracion').value = data.duracion_minutos;
+            document.getElementById('edit_clase_cupo').value = data.cupo_maximo;
+            document.getElementById('edit_clase_horario').value = data.horario;
+            document.getElementById('edit_clase_dias').value = data.dias_semana;
+            new bootstrap.Modal(document.getElementById('modalEditarClase')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cargar los datos de la clase');
+        });
+}
+</script>
+{% endblock %}

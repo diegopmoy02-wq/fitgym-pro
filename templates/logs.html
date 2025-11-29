@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Sistema de Gimnasio{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="bi bi-file-text"></i> Registro de Actividades (Logs)</h1>
+        <p class="text-muted">Historial de todas las operaciones realizadas en el sistema</p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if session.rol == 'administrador' %}
+        <a href="{{ url_for('descargar_logs_pdf') }}" class="btn btn-danger" target="_blank">
+            <i class="bi bi-file-pdf"></i> Descargar PDF
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabla de logs -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha y Hora</th>
+                        <th>Usuario</th>
+                        <th>Acción</th>
+                        <th>Tabla</th>
+                        <th>Registro ID</th>
+                        <th>Detalles</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.id }}</td>
+                        <td>{{ log.fecha_hora.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ log.username }}</span>
+                        </td>
+                        <td>
+                            {% if log.accion == 'CREATE' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-plus-circle"></i> CREATE
+                                </span>
+                            {% elif log.accion == 'UPDATE' %}
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-pencil"></i> UPDATE
+                                </span>
+                            {% elif log.accion == 'DELETE' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-trash"></i> DELETE
+                                </span>
+                            {% elif log.accion == 'LOGIN' %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-box-arrow-in-right"></i> LOGIN
+                                </span>
+                            {% elif log.accion == 'LOGOUT' %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-box-arrow-right"></i> LOGOUT
+                                </span>
+                            {% elif log.accion == 'EXPORT' %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-download"></i> EXPORT
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info">{{ log.accion }}</span>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ log.tabla_afectada }}</code></td>
+                        <td>{{ log.registro_id or '-' }}</td>
+                        <td>
+                            <small>{{ log.detalles }}</small>
+                        </td>
+                        <td><small>{{ log.ip_address or '-' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-3">
+    <i class="bi bi-info-circle"></i> 
+    <strong>Información:</strong> Este registro muestra todas las operaciones realizadas en el sistema.
+    Se registra quién realizó cada acción, qué hizo, cuándo y desde qué dirección IP.
+</div>
+
+{% endblock %}

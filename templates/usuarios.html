@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Usuarios - Sistema de Gimnasio{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-person-gear"></i> Gestión de Usuarios</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+            <i class="bi bi-person-plus"></i> Nuevo Usuario
+        </button>
+    </div>
+</div>
+
+<!-- Tabla de usuarios -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Nombre Completo</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Fecha Creación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>{{ usuario.id }}</td>
+                        <td>{{ usuario.username }}</td>
+                        <td>{{ usuario.nombre_completo }}</td>
+                        <td>{{ usuario.email or '-' }}</td>
+                        <td>
+                            {% if usuario.rol == 'administrador' %}
+                                <span class="badge bg-danger">Administrador</span>
+                            {% elif usuario.rol == 'encargado' %}
+                                <span class="badge bg-warning">Encargado</span>
+                            {% else %}
+                                <span class="badge bg-info">Consulta</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ usuario.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Usuario -->
+<div class="modal fade" id="modalNuevoUsuario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('crear_usuario') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Usuario del Sistema</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" name="nombre_completo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rol</label>
+                        <select class="form-select" name="rol" required>
+                            <option value="consulta">Consulta (Solo lectura)</option>
+                            <option value="encargado">Encargado (Lectura y escritura)</option>
+                            <option value="administrador">Administrador (Control total)</option>
+                        </select>
+                        <div class="form-text">
+                            <small>
+                                <strong>Consulta:</strong> Solo puede ver información.<br>
+                                <strong>Encargado:</strong> Puede agregar/editar, pero no eliminar todo.<br>
+                                <strong>Administrador:</strong> Control total del sistema.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Pagos - Sistema de Gimnasio{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-cash-coin"></i> Gestión de Pagos</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        {% if session.rol in ['administrador', 'encargado'] %}
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoPago">
+            <i class="bi bi-plus-circle"></i> Registrar Pago
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tarjetas de estadísticas de ingresos -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Ingresos Hoy</h6>
+                        <h2 class="mb-0">${{ "%.2f"|format(ingresos.ingresos_hoy) }}</h2>
+                    </div>
+                    <i class="bi bi-calendar-day" style="font-size: 3rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Ingresos del Mes</h6>
+                        <h2 class="mb-0">${{ "%.2f"|format(ingresos.ingresos_mes) }}</h2>
+                    </div>
+                    <i class="bi bi-calendar-month" style="font-size: 3rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Ingresos del Año</h6>
+                        <h2 class="mb-0">${{ "%.2f"|format(ingresos.ingresos_anio) }}</h2>
+                    </div>
+                    <i class="bi bi-calendar-range" style="font-size: 3rem; opacity: 0.5;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de pagos -->
+<div class="card">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">Historial de Pagos</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Miembro</th>
+                        <th>Concepto</th>
+                        <th>Monto</th>
+                        <th>Método</th>
+                        <th>Estado</th>
+                        <th>Registrado por</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pago in pagos %}
+                    <tr>
+                        <td>{{ pago.id }}</td>
+                        <td>{{ pago.fecha_pago.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ pago.nombre }} {{ pago.apellido }}</td>
+                        <td>{{ pago.concepto }}</td>
+                        <td><strong>${{ "%.2f"|format(pago.monto) }}</strong></td>
+                        <td>
+                            {% if pago.metodo_pago == 'efectivo' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-cash"></i> Efectivo
+                                </span>
+                            {% elif pago.metodo_pago == 'tarjeta' %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-credit-card"></i> Tarjeta
+                                </span>
+                            {% elif pago.metodo_pago == 'transferencia' %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-bank"></i> Transferencia
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">Otro</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pago.estado == 'completado' %}
+                                <span class="badge bg-success">Completado</span>
+                            {% elif pago.estado == 'pendiente' %}
+                                <span class="badge bg-warning">Pendiente</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelado</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ pago.username }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Pago -->
+<div class="modal fade" id="modalNuevoPago" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('registrar_pago') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Registrar Nuevo Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Miembro</label>
+                        <select class="form-select" name="miembro_id" required>
+                            <option value="">Seleccione un miembro...</option>
+                            {% for miembro in miembros %}
+                            <option value="{{ miembro.id }}">
+                                {{ miembro.nombre }} {{ miembro.apellido }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Concepto</label>
+                            <select class="form-select" name="concepto" required>
+                                <option value="">Seleccione...</option>
+                                <option value="Membresía Mensual">Membresía Mensual</option>
+                                <option value="Membresía Trimestral">Membresía Trimestral</option>
+                                <option value="Membresía Anual">Membresía Anual</option>
+                                <option value="Clase Extra">Clase Extra</option>
+                                <option value="Producto">Producto</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Monto</label>
+                            <input type="number" step="0.01" class="form-control" name="monto" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Método de Pago</label>
+                        <select class="form-select" name="metodo_pago" required>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Referencia / No. Transacción (opcional)</label>
+                        <input type="text" class="form-control" name="referencia">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notas (opcional)</label>
+                        <textarea class="form-control" name="notas" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

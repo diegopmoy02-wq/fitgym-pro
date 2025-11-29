@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Asistencias - Sistema de Gimnasio{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="bi bi-calendar-check"></i> Registro de Asistencias</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        {% if session.rol in ['administrador', 'encargado'] %}
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalRegistrarAsistencia">
+            <i class="bi bi-plus-circle"></i> Registrar Asistencia
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabla de asistencias -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha y Hora</th>
+                        <th>Miembro</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asistencia in asistencias %}
+                    <tr>
+                        <td>{{ asistencia.id }}</td>
+                        <td>{{ asistencia.fecha_hora.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                        <td>{{ asistencia.nombre }} {{ asistencia.apellido }}</td>
+                        <td>
+                            {% if asistencia.tipo == 'entrada' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-arrow-right"></i> Entrada
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-arrow-left"></i> Salida
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Registrar Asistencia -->
+<div class="modal fade" id="modalRegistrarAsistencia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('registrar_asistencia') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Registrar Asistencia</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Miembro</label>
+                        <select class="form-select" name="miembro_id" required>
+                            <option value="">Seleccione un miembro...</option>
+                            {% for miembro in miembros %}
+                            <option value="{{ miembro.id }}">
+                                {{ miembro.nombre }} {{ miembro.apellido }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" name="tipo" required>
+                            <option value="entrada">Entrada</option>
+                            <option value="salida">Salida</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
