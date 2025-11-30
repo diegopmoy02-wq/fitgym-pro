@@ -145,23 +145,24 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Concepto</label>
-                            <select class="form-select" name="concepto" required>
-                                <option value="">Seleccione...</option>
-                                <option value="Membresía Mensual">Membresía Mensual</option>
-                                <option value="Membresía Trimestral">Membresía Trimestral</option>
-                                <option value="Membresía Anual">Membresía Anual</option>
-                                <option value="Clase Extra">Clase Extra</option>
-                                <option value="Producto">Producto</option>
-                                <option value="Otro">Otro</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Monto</label>
-                            <input type="number" step="0.01" class="form-control" name="monto" required>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Membresía</label>
+                        <select class="form-select" id="select_membresia_pago" name="concepto" onchange="actualizarMontoPago()" required>
+                            <option value="">Seleccione un tipo de membresía...</option>
+                            {% for plan in planes %}
+                            <option value="Membresía {{ plan.nombre }}" data-precio="{{ plan.precio }}">
+                                {{ plan.nombre }} - ${{ "%.2f"|format(plan.precio) }}/mes
+                            </option>
+                            {% endfor %}
+                            <option value="Clase Extra" data-precio="100">Clase Extra - $100.00</option>
+                            <option value="Producto" data-precio="0">Producto</option>
+                            <option value="Otro" data-precio="0">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto</label>
+                        <input type="number" step="0.01" class="form-control" id="monto_pago" name="monto" required>
+                        <small class="text-muted">El monto se completa automáticamente según la membresía seleccionada</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Método de Pago</label>
@@ -189,5 +190,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
+<script>
+function actualizarMontoPago() {
+    const select = document.getElementById('select_membresia_pago');
+    const option = select.options[select.selectedIndex];
+    const montoInput = document.getElementById('monto_pago');
+    
+    if (option.value && option.dataset.precio) {
+        const precio = parseFloat(option.dataset.precio);
+        if (precio > 0) {
+            montoInput.value = precio.toFixed(2);
+            montoInput.readOnly = true;
+        } else {
+            montoInput.value = '';
+            montoInput.readOnly = false;
+        }
+    } else {
+        montoInput.value = '';
+        montoInput.readOnly = false;
+    }
+}
+</script>
 {% endblock %}

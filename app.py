@@ -437,7 +437,8 @@ def pagos():
     pagos = db.obtener_pagos(200)
     miembros = db.obtener_miembros()
     ingresos = db.obtener_ingresos_totales()
-    return render_template('pagos.html', pagos=pagos, miembros=miembros, ingresos=ingresos)
+    planes = db.obtener_planes()
+    return render_template('pagos.html', pagos=pagos, miembros=miembros, ingresos=ingresos, planes=planes)
 
 @app.route('/pagos/registrar', methods=['POST'])
 @login_required
