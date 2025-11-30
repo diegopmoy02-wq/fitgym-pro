@@ -38,16 +38,16 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('clases') }}">
-                            <i class="bi bi-calendar2-week"></i> Clases
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('pagos') }}">
                             <i class="bi bi-cash-coin"></i> Pagos
                         </a>
                     </li>
                     {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('clases') }}">
+                            <i class="bi bi-calendar2-week"></i> Clases
+                        </a>
+                    </li>
                     {% if session.rol == 'administrador' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('usuarios') }}">

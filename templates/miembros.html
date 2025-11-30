@@ -318,11 +318,14 @@ function actualizarBeneficios() {
             });
         }
         
-        // Autocompletar monto
+        // Autocompletar monto (precio del plan) y hacerlo solo lectura
         document.getElementById('monto_pagado').value = precio;
+        document.getElementById('monto_pagado').readOnly = true;
         document.getElementById('info_plan').style.display = 'block';
     } else {
         document.getElementById('info_plan').style.display = 'none';
+        document.getElementById('monto_pagado').readOnly = false;
+        document.getElementById('monto_pagado').value = '';
     }
 }
 

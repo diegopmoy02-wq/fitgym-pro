@@ -94,7 +94,8 @@ def logout():
 def dashboard():
     stats = db.obtener_estadisticas()
     asistencias_hoy = db.obtener_asistencias_hoy()
-    return render_template('dashboard.html', stats=stats, asistencias=asistencias_hoy)
+    planes = db.obtener_planes()
+    return render_template('dashboard.html', stats=stats, asistencias=asistencias_hoy, planes=planes)
 
 # === GESTIÓN DE MIEMBROS ===
 
