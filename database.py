@@ -355,3 +355,65 @@ class Database:
         stats['ingresos_anio'] = float(result[0]['total']) if result else 0.0
         
         return stats
+    
+    # === FUNCIONES ADICIONALES DE USUARIOS ===
+    
+    def actualizar_usuario(self, usuario_id, nombre_completo, rol, email, activo):
+        """Actualiza un usuario del sistema"""
+        query = """
+            UPDATE usuarios_sistema 
+            SET nombre_completo = %s, rol = %s, email = %s, activo = %s
+            WHERE id = %s
+        """
+        return self.execute_query(query, (nombre_completo, rol, email, activo, usuario_id), commit=True)
+    
+    def eliminar_usuario(self, usuario_id):
+        """Elimina un usuario del sistema (solo administrador)"""
+        query = "DELETE FROM usuarios_sistema WHERE id = %s"
+        return self.execute_query(query, (usuario_id,), commit=True)
+    
+    # === FUNCIONES ADICIONALES DE PAGOS ===
+    
+    def actualizar_pago(self, pago_id, concepto, monto, metodo_pago, referencia, notas):
+        """Actualiza un pago existente"""
+        query = """
+            UPDATE pagos 
+            SET concepto = %s, monto = %s, metodo_pago = %s, referencia = %s, notas = %s
+            WHERE id = %s
+        """
+        return self.execute_query(query, (concepto, monto, metodo_pago, referencia, notas, pago_id), commit=True)
+    
+    def eliminar_pago(self, pago_id):
+        """Elimina un pago"""
+        query = "DELETE FROM pagos WHERE id = %s"
+        return self.execute_query(query, (pago_id,), commit=True)
+    
+    def verificar_pago_duplicado(self, miembro_id, concepto, monto):
+        """Verifica si existe un pago similar en las últimas 24 horas"""
+        query = """
+            SELECT COUNT(*) as total
+            FROM pagos
+            WHERE miembro_id = %s 
+            AND concepto = %s 
+            AND monto = %s 
+            AND fecha_pago >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        """
+        result = self.execute_query(query, (miembro_id, concepto, monto))
+        return result[0]['total'] > 0 if result else False
+    
+    def obtener_pago(self, pago_id):
+        """Obtiene un pago específico"""
+        query = """
+            SELECT p.*, m.nombre, m.apellido
+            FROM pagos p
+            JOIN miembros m ON p.miembro_id = m.id
+            WHERE p.id = %s
+        """
+        result = self.execute_query(query, (pago_id,))
+        return result[0] if result else None
+    
+    def obtener_usuario(self, usuario_id):
+        """Obtiene un usuario específico"""
+        query = "SELECT * FROM usuarios_sistema WHERE id = %s"
+        result = self.execute_query(query, (usuario_id,))
+        return result[0] if result else None

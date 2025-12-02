@@ -28,6 +28,7 @@
                         <th>Rol</th>
                         <th>Estado</th>
                         <th>Fecha Creación</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -54,6 +55,18 @@
                             {% endif %}
                         </td>
                         <td>{{ usuario.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-info" onclick="editarUsuario({{ usuario.id }})" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                {% if usuario.id != session.user_id %}
+                                <button class="btn btn-danger" onclick="eliminarUsuario({{ usuario.id }}, '{{ usuario.username }}')" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -113,4 +126,78 @@
     </div>
 </div>
 
+<!-- Modal Editar Usuario -->
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="formEditarUsuario">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" name="nombre_completo" id="edit_usuario_nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" id="edit_usuario_email">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rol</label>
+                        <select class="form-select" name="rol" id="edit_usuario_rol" required>
+                            <option value="consulta">Consulta</option>
+                            <option value="encargado">Encargado</option>
+                            <option value="administrador">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="activo" id="edit_usuario_activo" required>
+                            <option value="1">Activo</option>
+                            <option value="0">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editarUsuario(id) {
+    fetch(`/api/usuario/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('formEditarUsuario').action = `/usuarios/editar/${id}`;
+            document.getElementById('edit_usuario_nombre').value = data.nombre_completo;
+            document.getElementById('edit_usuario_email').value = data.email || '';
+            document.getElementById('edit_usuario_rol').value = data.rol;
+            document.getElementById('edit_usuario_activo').value = data.activo ? '1' : '0';
+            new bootstrap.Modal(document.getElementById('modalEditarUsuario')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cargar los datos del usuario');
+        });
+}
+
+function eliminarUsuario(id, username) {
+    if (confirm(`¿Estás seguro de eliminar al usuario "${username}"?\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/usuarios/eliminar/${id}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
 {% endblock %}

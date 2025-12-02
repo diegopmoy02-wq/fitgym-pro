@@ -297,6 +297,68 @@ def crear_usuario():
     
     return redirect(url_for('usuarios'))
 
+@app.route('/usuarios/editar/<int:id>', methods=['POST'])
+@login_required
+@role_required('administrador')
+def editar_usuario(id):
+    nombre_completo = request.form.get('nombre_completo')
+    rol = request.form.get('rol')
+    email = request.form.get('email')
+    activo = request.form.get('activo') == '1'
+    
+    resultado = db.actualizar_usuario(id, nombre_completo, rol, email, activo)
+    
+    if resultado is not None:
+        db.registrar_log(
+            usuario_id=session['user_id'],
+            accion='UPDATE',
+            tabla_afectada='usuarios_sistema',
+            registro_id=id,
+            detalles=f"Actualizado usuario: {nombre_completo} - Rol: {rol}",
+            ip_address=request.remote_addr
+        )
+        flash('Usuario actualizado exitosamente', 'success')
+    else:
+        flash('Error al actualizar usuario', 'danger')
+    
+    return redirect(url_for('usuarios'))
+
+@app.route('/usuarios/eliminar/<int:id>', methods=['POST'])
+@login_required
+@role_required('administrador')
+def eliminar_usuario(id):
+    # Prevenir que el admin se elimine a sí mismo
+    if id == session['user_id']:
+        flash('No puedes eliminar tu propio usuario', 'danger')
+        return redirect(url_for('usuarios'))
+    
+    usuario = db.obtener_usuario(id)
+    
+    if usuario:
+        resultado = db.eliminar_usuario(id)
+        
+        if resultado is not None:
+            db.registrar_log(
+                usuario_id=session['user_id'],
+                accion='DELETE',
+                tabla_afectada='usuarios_sistema',
+                registro_id=id,
+                detalles=f"Eliminado usuario: {usuario['username']}",
+                ip_address=request.remote_addr
+            )
+            flash('Usuario eliminado exitosamente', 'success')
+        else:
+            flash('Error al eliminar usuario', 'danger')
+    
+    return redirect(url_for('usuarios'))
+
+@app.route('/api/usuario/<int:id>')
+@login_required
+@role_required('administrador')
+def api_obtener_usuario(id):
+    usuario = db.obtener_usuario(id)
+    return jsonify(usuario) if usuario else jsonify({'error': 'No encontrado'}), 404
+
 # === LOG DE ACTIVIDADES ===
 
 @app.route('/logs')
@@ -451,6 +513,11 @@ def registrar_pago():
     referencia = request.form.get('referencia')
     notas = request.form.get('notas')
     
+    # Verificar si existe un pago duplicado
+    if db.verificar_pago_duplicado(miembro_id, concepto, float(monto)):
+        flash('⚠️ ADVERTENCIA: Ya existe un pago similar registrado en las últimas 24 horas. Verifica antes de continuar.', 'warning')
+        return redirect(url_for('pagos'))
+    
     pago_id = db.registrar_pago(miembro_id, concepto, monto, metodo_pago, session['user_id'], referencia, notas)
     
     if pago_id:
@@ -468,6 +535,64 @@ def registrar_pago():
         flash('Error al registrar pago', 'danger')
     
     return redirect(url_for('pagos'))
+
+@app.route('/pagos/editar/<int:id>', methods=['POST'])
+@login_required
+@role_required('administrador', 'encargado')
+def editar_pago(id):
+    concepto = request.form.get('concepto')
+    monto = request.form.get('monto')
+    metodo_pago = request.form.get('metodo_pago')
+    referencia = request.form.get('referencia')
+    notas = request.form.get('notas')
+    
+    resultado = db.actualizar_pago(id, concepto, monto, metodo_pago, referencia, notas)
+    
+    if resultado is not None:
+        db.registrar_log(
+            usuario_id=session['user_id'],
+            accion='UPDATE',
+            tabla_afectada='pagos',
+            registro_id=id,
+            detalles=f"Actualizado pago ID {id}: {concepto} - ${monto}",
+            ip_address=request.remote_addr
+        )
+        flash('Pago actualizado exitosamente', 'success')
+    else:
+        flash('Error al actualizar pago', 'danger')
+    
+    return redirect(url_for('pagos'))
+
+@app.route('/pagos/eliminar/<int:id>', methods=['POST'])
+@login_required
+@role_required('administrador', 'encargado')
+def eliminar_pago(id):
+    pago = db.obtener_pago(id)
+    
+    if pago:
+        resultado = db.eliminar_pago(id)
+        
+        if resultado is not None:
+            db.registrar_log(
+                usuario_id=session['user_id'],
+                accion='DELETE',
+                tabla_afectada='pagos',
+                registro_id=id,
+                detalles=f"Eliminado pago: {pago['concepto']} - ${pago['monto']}",
+                ip_address=request.remote_addr
+            )
+            flash('Pago eliminado exitosamente', 'success')
+        else:
+            flash('Error al eliminar pago', 'danger')
+    
+    return redirect(url_for('pagos'))
+
+@app.route('/api/pago/<int:id>')
+@login_required
+@role_required('administrador', 'encargado')
+def api_obtener_pago(id):
+    pago = db.obtener_pago(id)
+    return jsonify(pago) if pago else jsonify({'error': 'No encontrado'}), 404
 
 # === DESCARGAR LOGS EN PDF ===
 

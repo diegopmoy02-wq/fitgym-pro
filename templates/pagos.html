@@ -79,6 +79,9 @@
                         <th>Método</th>
                         <th>Estado</th>
                         <th>Registrado por</th>
+                        {% if session.rol in ['administrador', 'encargado'] %}
+                        <th>Acciones</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -116,6 +119,18 @@
                             {% endif %}
                         </td>
                         <td>{{ pago.username }}</td>
+                        {% if session.rol in ['administrador', 'encargado'] %}
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-info" onclick="editarPago({{ pago.id }})" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-danger" onclick="eliminarPago({{ pago.id }}, '{{ pago.concepto }}')" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                        {% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -190,6 +205,62 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Editar Pago -->
+<div class="modal fade" id="modalEditarPago" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" id="formEditarPago">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Membresía</label>
+                        <select class="form-select" id="edit_pago_concepto" name="concepto" onchange="actualizarMontoEdicion()" required>
+                            <option value="">Seleccione...</option>
+                            {% for plan in planes %}
+                            <option value="Membresía {{ plan.nombre }}" data-precio="{{ plan.precio }}">
+                                {{ plan.nombre }} - ${{ "%.2f"|format(plan.precio) }}/mes
+                            </option>
+                            {% endfor %}
+                            <option value="Clase Extra" data-precio="100">Clase Extra - $100.00</option>
+                            <option value="Producto" data-precio="0">Producto</option>
+                            <option value="Otro" data-precio="0">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto</label>
+                        <input type="number" step="0.01" class="form-control" id="edit_pago_monto" name="monto" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Método de Pago</label>
+                        <select class="form-select" id="edit_pago_metodo" name="metodo_pago" required>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Referencia / No. Transacción</label>
+                        <input type="text" class="form-control" id="edit_pago_referencia" name="referencia">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" id="edit_pago_notas" name="notas" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -211,6 +282,52 @@ function actualizarMontoPago() {
     } else {
         montoInput.value = '';
         montoInput.readOnly = false;
+    }
+}
+
+function actualizarMontoEdicion() {
+    const select = document.getElementById('edit_pago_concepto');
+    const option = select.options[select.selectedIndex];
+    const montoInput = document.getElementById('edit_pago_monto');
+    
+    if (option.value && option.dataset.precio) {
+        const precio = parseFloat(option.dataset.precio);
+        if (precio > 0) {
+            montoInput.value = precio.toFixed(2);
+            montoInput.readOnly = true;
+        } else {
+            montoInput.readOnly = false;
+        }
+    } else {
+        montoInput.readOnly = false;
+    }
+}
+
+function editarPago(id) {
+    fetch(`/api/pago/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('formEditarPago').action = `/pagos/editar/${id}`;
+            document.getElementById('edit_pago_concepto').value = data.concepto;
+            document.getElementById('edit_pago_monto').value = parseFloat(data.monto).toFixed(2);
+            document.getElementById('edit_pago_metodo').value = data.metodo_pago;
+            document.getElementById('edit_pago_referencia').value = data.referencia || '';
+            document.getElementById('edit_pago_notas').value = data.notas || '';
+            new bootstrap.Modal(document.getElementById('modalEditarPago')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cargar los datos del pago');
+        });
+}
+
+function eliminarPago(id, concepto) {
+    if (confirm(`¿Estás seguro de eliminar el pago:\n\n"${concepto}"\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/pagos/eliminar/${id}`;
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 </script>
