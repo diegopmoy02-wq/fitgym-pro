@@ -216,9 +216,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> <strong>Miembro:</strong> <span id="edit_pago_miembro_nombre"></span>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Tipo de Membresía</label>
-                        <select class="form-select" id="edit_pago_concepto" name="concepto" onchange="actualizarMontoEdicion()" required>
+                        <select class="form-select" id="edit_select_membresia" name="concepto" onchange="actualizarMontoEditar()" required>
                             <option value="">Seleccione...</option>
                             {% for plan in planes %}
                             <option value="Membresía {{ plan.nombre }}" data-precio="{{ plan.precio }}">
@@ -232,11 +235,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Monto</label>
-                        <input type="number" step="0.01" class="form-control" id="edit_pago_monto" name="monto" required>
+                        <input type="number" step="0.01" class="form-control" id="edit_monto" name="monto" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Método de Pago</label>
-                        <select class="form-select" id="edit_pago_metodo" name="metodo_pago" required>
+                        <select class="form-select" name="metodo_pago" id="edit_metodo_pago" required>
                             <option value="efectivo">Efectivo</option>
                             <option value="tarjeta">Tarjeta</option>
                             <option value="transferencia">Transferencia</option>
@@ -244,12 +247,12 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Referencia / No. Transacción</label>
-                        <input type="text" class="form-control" id="edit_pago_referencia" name="referencia">
+                        <label class="form-label">Referencia</label>
+                        <input type="text" class="form-control" name="referencia" id="edit_referencia">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Notas</label>
-                        <textarea class="form-control" id="edit_pago_notas" name="notas" rows="2"></textarea>
+                        <textarea class="form-control" name="notas" id="edit_notas" rows="2"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -285,10 +288,10 @@ function actualizarMontoPago() {
     }
 }
 
-function actualizarMontoEdicion() {
-    const select = document.getElementById('edit_pago_concepto');
+function actualizarMontoEditar() {
+    const select = document.getElementById('edit_select_membresia');
     const option = select.options[select.selectedIndex];
-    const montoInput = document.getElementById('edit_pago_monto');
+    const montoInput = document.getElementById('edit_monto');
     
     if (option.value && option.dataset.precio) {
         const precio = parseFloat(option.dataset.precio);
@@ -308,11 +311,12 @@ function editarPago(id) {
         .then(response => response.json())
         .then(data => {
             document.getElementById('formEditarPago').action = `/pagos/editar/${id}`;
-            document.getElementById('edit_pago_concepto').value = data.concepto;
-            document.getElementById('edit_pago_monto').value = parseFloat(data.monto).toFixed(2);
-            document.getElementById('edit_pago_metodo').value = data.metodo_pago;
-            document.getElementById('edit_pago_referencia').value = data.referencia || '';
-            document.getElementById('edit_pago_notas').value = data.notas || '';
+            document.getElementById('edit_pago_miembro_nombre').textContent = `${data.nombre} ${data.apellido}`;
+            document.getElementById('edit_select_membresia').value = data.concepto;
+            document.getElementById('edit_monto').value = data.monto;
+            document.getElementById('edit_metodo_pago').value = data.metodo_pago;
+            document.getElementById('edit_referencia').value = data.referencia || '';
+            document.getElementById('edit_notas').value = data.notas || '';
             new bootstrap.Modal(document.getElementById('modalEditarPago')).show();
         })
         .catch(error => {
@@ -322,7 +326,7 @@ function editarPago(id) {
 }
 
 function eliminarPago(id, concepto) {
-    if (confirm(`¿Estás seguro de eliminar el pago:\n\n"${concepto}"\n\nEsta acción no se puede deshacer.`)) {
+    if (confirm(`¿Estás seguro de eliminar este pago?\n\nConcepto: ${concepto}\n\n⚠️ Esta acción no se puede deshacer.`)) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/pagos/eliminar/${id}`;

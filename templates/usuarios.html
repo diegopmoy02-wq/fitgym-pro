@@ -137,6 +137,11 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="edit_usuario_username" readonly>
+                        <small class="text-muted">El username no se puede cambiar</small>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Nombre Completo</label>
                         <input type="text" class="form-control" name="nombre_completo" id="edit_usuario_nombre" required>
                     </div>
@@ -162,7 +167,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Actualizar Usuario</button>
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
                 </div>
             </form>
         </div>
@@ -178,6 +183,7 @@ function editarUsuario(id) {
         .then(response => response.json())
         .then(data => {
             document.getElementById('formEditarUsuario').action = `/usuarios/editar/${id}`;
+            document.getElementById('edit_usuario_username').value = data.username;
             document.getElementById('edit_usuario_nombre').value = data.nombre_completo;
             document.getElementById('edit_usuario_email').value = data.email || '';
             document.getElementById('edit_usuario_rol').value = data.rol;
@@ -191,7 +197,7 @@ function editarUsuario(id) {
 }
 
 function eliminarUsuario(id, username) {
-    if (confirm(`¿Estás seguro de eliminar al usuario "${username}"?\n\nEsta acción no se puede deshacer.`)) {
+    if (confirm(`¿Estás seguro de eliminar al usuario ${username}?\n\n⚠️ Esta acción no se puede deshacer.`)) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/usuarios/eliminar/${id}`;
